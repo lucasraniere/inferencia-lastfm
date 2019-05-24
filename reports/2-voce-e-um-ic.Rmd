@@ -126,18 +126,22 @@ ggplot() +
 ```
 ```{r}
 # com as bibliotecas
-library(boot)
+#library(boot)
 
-booted <- boot(data = lastfm, 
-               statistic = theta_func, 
-               R = 2000)
+# ###########################################################################
+# #MUDAR A FUNCAO THETA PARA RECEBER2 PARAMETROS, PADRAO DA BIBLIOTECA BOOT#
+# ##########################################################################
 
-ci = tidy(booted, 
-          conf.level = .95,
-          conf.method = "bca",
-          conf.int = TRUE)
+#booted <- boot(data = lastfm, 
+#               statistic = theta_func, 
+#               R = 2000)
 
-glimpse(ci)
+#ci = tidy(booted, 
+#          conf.level = .95,
+#          conf.method = "bca",
+#          conf.int = TRUE)
+
+#glimpse(ci)
 
 ```
 
