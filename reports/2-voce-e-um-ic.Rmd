@@ -53,11 +53,11 @@ Utilizaremos ICs para estimar duas métricas sobre os usuários do LastFM em ger
 Crie intervalos com 95% de confiança.
 
 ```{r}
-#theta_func <- function(df) {
-#    df %>%
-#        pull(p_new) %>%
-#        mean()
-#}
+theta_func <- function(df) {
+    df %>%
+        pull(p_new) %>%
+        mean()
+}
 
 theta_c = lastfm %>%
             pull(p_news) %>%
@@ -123,6 +123,22 @@ ggplot() +
              size = 1.2) +
   #geom_vline(xintercept = theta_c, color = "dark green") +
   labs(title = expression("Intervalo estimado via bootstrap"))
+```
+```{r}
+# com as bibliotecas
+library(boot)
+
+booted <- boot(data = lastfm, 
+               statistic = theta_func, 
+               R = 2000)
+
+ci = tidy(booted, 
+          conf.level = .95,
+          conf.method = "bca",
+          conf.int = TRUE)
+
+glimpse(ci)
+
 ```
 
 
