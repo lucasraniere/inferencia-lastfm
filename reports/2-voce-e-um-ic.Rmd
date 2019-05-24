@@ -50,8 +50,6 @@ lastfm
 Utilizaremos ICs para estimar duas métricas sobre os usuários do LastFM em geral durante um período de 6 meses. Em ambos os casos faremos isso a partir de uma amostra de 300 usuários. As duas métricas são: 
 
 1. Qual a proporção de novos artistas em geral escutada por usuários?
-2. Para os usuários que gostam de música muito pop (mediana_pop > 5), qual a correlação entre a popularidade mediana dos artistas escutado e a proporção dos artistas escutados que eram novos. 
-
 Crie intervalos com 95% de confiança.
 
 ```{r}
@@ -85,19 +83,6 @@ reamostragens = tibble(i = 1:4000) %>%
 reamostragens
 ```
 
-```{r}
-reamostragens %>%
-    ggplot(aes(theta_c_s)) +
-    geom_histogram(binwidth = .005,
-                   colour = "lightblue",
-                   fill = "white")
-
-reamostragens %>%
-    ggplot(aes(theta_c_s - theta_c)) +
-    geom_histogram(binwidth = .005,
-                   colour = "lightblue",
-                   fill = "white")
-```
 
 ```{r}
 intervalo <- reamostragens %>%
@@ -123,7 +108,7 @@ ggplot() +
     aes(xmin = valor_i, xmax = valor_s),
     ymin = -Inf,
     ymax = Inf,
-    fill = "lightgreen",
+    fill = "green",
     alpha = .25
   ) +
   geom_histogram(
@@ -134,6 +119,90 @@ ggplot() +
     colour = "blue"
   ) +
   geom_vline(xintercept = theta_c,
+             color = "red",
+             size = 1.2) +
+  #geom_vline(xintercept = theta_c, color = "dark green") +
+  labs(title = expression("Intervalo estimado via bootstrap"))
+```
+
+
+2. Para os usuários que gostam de música muito pop (mediana_pop > 5), qual a correlação entre a popularidade mediana dos artistas escutado e a proporção dos artistas escutados que eram novos. 
+
+```{r}
+lastfm %>%
+  filter(mediana_pop > 5) %>%
+  ggplot(aes(x = p_news, y = mediana_pop)) +
+  geom_point()
+
+lastfm %>%
+  filter(mediana_pop > 5) %>%
+  summarise(pearson = cor(p_news, mediana_pop, method = "pearson"),
+            spearman =cor(p_news, mediana_pop, method = "spearman"),
+            kendall = cor(p_news, mediana_pop, method = "kendall"))
+               
+```
+
+```{r}
+theta_p <- pull(lastfm %>%
+  filter(mediana_pop > 5) %>%
+  summarise(pearson = cor(p_news, mediana_pop, method = "pearson")))
+
+theta_p
+```
+
+```{r}
+bootstrap2 <- function(df) {
+    df <- df %>% 
+                filter(mediana_pop > 5) %>%
+                select(p_news, mediana_pop)
+    boot_df <- sample_n(df,
+                      size = NROW(df),
+                      replace = TRUE)
+    return(pull(boot_df %>%
+                summarise(pearson = cor(p_news, mediana_pop, method = "pearson"))))
+}
+```
+
+
+```{r}
+reamostragens2 = tibble(i = 1:4000) %>%
+    mutate(theta_p_s = map_dbl(i, ~bootstrap2(lastfm)))
+
+reamostragens2
+
+```
+
+```{r}
+intervalo2 <- reamostragens2 %>%
+    mutate(erro = theta_p_s - theta_p) %>%
+    summarise(erro_i = quantile(erro, .025),
+              erro_s = quantile(erro, .975))
+
+intervalo2 <- intervalo2 %>%
+    mutate(valor_i = theta_p + erro_i,
+           valor_s = theta_p + erro_s)
+
+intervalo2
+```
+
+```{r}
+ggplot() +
+  geom_rect(
+    data = intervalo2,
+    aes(xmin = valor_i, xmax = valor_s),
+    ymin = -Inf,
+    ymax = Inf,
+    fill = "green",
+    alpha = .25
+  ) +
+  geom_histogram(
+    data = reamostragens2,
+    aes(theta_p_s),
+    binwidth = .025,
+    fill = "white",
+    colour = "blue"
+  ) +
+  geom_vline(xintercept = theta_p,
              color = "red",
              size = 1.2) +
   #geom_vline(xintercept = theta_c, color = "dark green") +
